@@ -1,0 +1,76 @@
+/* Container for the protected login page */
+.protected-login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #191414, #1db954);
+  font-family: 'Arial', sans-serif;
+}
+
+/* Box containing the login form */
+.protected-login-box {
+  background: #121212;
+  padding: 3rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+  width: 350px;
+  text-align: center;
+  color: #fff;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.protected-login-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.8);
+}
+
+/* Heading */
+.protected-login-box h1 {
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  color: #1db954;
+}
+
+/* Form styling */
+.protected-login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.protected-login-form input {
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  background: #1e1e1e;
+  color: #fff;
+  transition: background 0.3s ease;
+}
+
+.protected-login-form input::placeholder {
+  color: #bbb;
+}
+
+.protected-login-form input:focus {
+  background: #2c2c2c;
+}
+
+/* Login button */
+.protected-login-form button {
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: none;
+  background: #1db954;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.protected-login-form button:hover {
+  background: #17a44d;
+  transform: translateY(-2px);
+}

@@ -1,0 +1,52 @@
+/* Top Songs Section */
+.top-songs-section {
+  margin-top: 3rem;
+}
+
+.top-songs-section h2 {
+  font-size: 1.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.song-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.song-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #1db954, #191414);
+  padding: 1rem;
+  border-radius: 12px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.song-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+}
+
+.song-rank {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-right: 1rem;
+}
+
+.song-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.song-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #dcdcdc;
+}
+
+.song-time {
+  font-size: 0.9rem;
+  color: #fff;
+}

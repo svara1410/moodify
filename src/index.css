@@ -1,0 +1,11 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #121212;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.page-content {
+  padding-top: 70px; /* navbar height */
+}
