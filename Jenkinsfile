@@ -1,23 +1,42 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Fetch Project from Git') {
-            steps {
-                git 'https://github.com/svara1410/moodify.git'
-            }
-        }
+  stages {
 
-        stage('Install Dependencies') {
-            steps {
-                bat 'npm install'
-            }
-        }
-
-        stage('Build Project') {
-            steps {
-                bat 'npm run build'
-            }
-        }
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
     }
+
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm install'
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      environment {
+        SONAR_TOKEN = credentials('SONAR_TOKEN_ID') // match your Jenkins credential ID
+      }
+      steps {
+        withSonarQubeEnv('SonarQube') {
+          sh """
+            # Run sonar scanner
+            npx sonar-scanner \
+              -Dsonar.projectKey=moodify \
+              -Dsonar.sources=. \
+              -Dsonar.host.url=$SONAR_HOST_URL \
+              -Dsonar.login=$SonarQube token
+          """
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        waitForQualityGate abortPipeline: true
+      }
+    }
+  }
 }
