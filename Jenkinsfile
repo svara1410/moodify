@@ -11,7 +11,7 @@ pipeline {
 
     stage('Install Dependencies') {
       steps {
-        sh 'npm install'
+        bat 'npm install'
       }
     }
 
@@ -21,7 +21,7 @@ pipeline {
       }
       steps {
         withSonarQubeEnv('SonarQube') {
-          sh """
+          bat """
             # Run sonar scanner
             npx sonar-scanner \
               -Dsonar.projectKey=moodify \
