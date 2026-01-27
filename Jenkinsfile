@@ -17,17 +17,15 @@ pipeline {
 
     stage('SonarQube Analysis') {
       environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN_ID') // match your Jenkins credential ID
+        SONAR_TOKEN = credentials('sqa_a7e75fe218ad898df8006b6796d443050f7c4809')
       }
       steps {
-        withSonarQubeEnv('SonarQube') {
+        withSonarQubeEnv('Moodify') {
           bat """
-            # Run sonar scanner
-            npx sonar-scanner \
-              -Dsonar.projectKey=moodify \
-              -Dsonar.sources=. \
-              -Dsonar.host.url=$SONAR_HOST_URL \
-              -Dsonar.login=$SonarQube token
+          npx sonar-scanner ^
+            -Dsonar.projectKey=moodify ^
+            -Dsonar.sources=. ^
+            -Dsonar.login=%SONAR_TOKEN%
           """
         }
       }
