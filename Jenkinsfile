@@ -24,17 +24,19 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                    sonar-scanner \
-                    -Dsonar.projectKey=moodify \
-                    -Dsonar.projectName=moodify \
-                    -Dsonar.sources=.
-                    '''
-                }
-            }
+    steps {
+        withSonarQubeEnv('SonarQube') {
+            bat '''
+            docker run --rm ^
+              -e SONAR_HOST_URL=http://host.docker.internal:9000 ^
+              -e SONAR_LOGIN=%SONAR_AUTH_TOKEN% ^
+              -v "%cd%:/usr/src" ^
+              sonarsource/sonar-scanner-cli
+            '''
         }
+    }
+}
+
 
         stage('Docker Build') {
             steps {
