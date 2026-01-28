@@ -2,13 +2,14 @@ pipeline {
     agent any
 
     tools {
-    nodejs 'node'
-    sonarQubeScanner 'SonarQubeScanner'
-}
-
+        nodejs 'node' // Make sure NodeJS is installed in Jenkins Tools
+        // sonar-scanner tool is optional if installed via Jenkins Global Tool Configuration
+        // sonarQubeScanner 'SonarQubeScanner' // Removed because Declarative pipelines don't support it directly here
+    }
 
     environment {
-        SONAR_HOME = tool 'SonarQubeScanner'
+        // Make sure SONAR_AUTH_TOKEN is set in Jenkins credentials
+        SONAR_TOKEN = credentials('SONAR_AUTH_TOKEN') 
     }
 
     stages {
@@ -21,34 +22,34 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                bat 'npm install'
             }
         }
 
         stage('SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('SonarQube') {
-            bat '''
-            docker run --rm ^
-              -e SONAR_HOST_URL=http://host.docker.internal:9000 ^
-              -e SONAR_LOGIN=%SONAR_AUTH_TOKEN% ^
-              -v "%cd%:/usr/src" ^
-              sonarsource/sonar-scanner-cli
-            '''
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    // Run sonar-scanner installed on the Jenkins machine
+                    bat """
+                    sonar-scanner ^
+                      -Dsonar.projectKey=moodify ^
+                      -Dsonar.sources=. ^
+                      -Dsonar.host.url=%SONAR_HOST_URL% ^
+                      -Dsonar.login=%SONAR_TOKEN%
+                    """
+                }
+            }
         }
-    }
-}
-
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t moodify-app .'
+                bat 'docker build -t moodify-app .'
             }
         }
 
         stage('Docker Run') {
             steps {
-                sh 'docker run -d -p 3000:3000 moodify-app'
+                bat 'docker run -d -p 3000:3000 moodify-app'
             }
         }
     }
