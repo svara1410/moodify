@@ -8,9 +8,9 @@ pipeline {
     }
 
     environment {
-        // Make sure SONAR_AUTH_TOKEN is set in Jenkins credentials
-        SONAR_TOKEN = credentials('SONAR_AUTH_TOKEN') 
-    }
+    SONAR_TOKEN = credentials('SONAR_AUTH_TOKEN') // this ID must exist
+}
+
 
     stages {
 
