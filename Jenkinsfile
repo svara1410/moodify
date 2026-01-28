@@ -10,10 +10,12 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
-                    sonar-scanner \
-                    -Dsonar.projectKey=moodify \
-                    -Dsonar.sources=.
+                    bat '''
+                    docker run --rm ^
+                      -e SONAR_HOST_URL=%SONAR_HOST_URL% ^
+                      -e SONAR_LOGIN=%SONAR_AUTH_TOKEN% ^
+                      -v "%CD%:/usr/src" ^
+                      sonarsource/sonar-scanner-cli
                     '''
                 }
             }
@@ -21,20 +23,20 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t %IMAGE_NAME% .'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
         stage('Trivy Scan') {
             steps {
-                sh 'trivy image %IMAGE_NAME% || exit 0'
+                bat 'trivy image %IMAGE_NAME% || exit 0'
             }
         }
 
         stage('Run Container') {
             steps {
-                sh '''
-                docker rm -f moodify || exit 0
+                bat '''
+                docker rm -f moodify 2>nul
                 docker run -d -p 3000:3000 --name moodify %IMAGE_NAME%
                 '''
             }
