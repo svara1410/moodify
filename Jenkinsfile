@@ -31,13 +31,16 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     // Run sonar-scanner installed on the Jenkins machine
-                    bat """
-                    sonar-scanner ^
-                      -Dsonar.projectKey=moodify ^
-                      -Dsonar.sources=. ^
-                      -Dsonar.host.url=%SONAR_HOST_URL% ^
-                      -Dsonar.login=%SONAR_TOKEN%
-                    """
+                    withSonarQubeEnv('SonarQube') {
+    bat """
+    sonar-scanner ^
+        -Dsonar.projectKey=moodify ^
+        -Dsonar.sources=. ^
+        -Dsonar.host.url=http://localhost:9000 ^
+        -Dsonar.login=%SONAR_TOKEN%
+    """
+}
+
                 }
             }
         }
