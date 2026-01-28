@@ -15,10 +15,11 @@ pipeline {
     stages {
 
         stage('Checkout') {
-            steps {
-                git 'https://github.com/svara1410/moodify.git'
-            }
-        }
+    steps {
+        git branch: 'main', url: 'https://github.com/svara1410/moodify.git'
+    }
+}
+
 
         stage('Install Dependencies') {
             steps {
