@@ -27,23 +27,20 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    // Run sonar-scanner installed on the Jenkins machine
-                    withSonarQubeEnv('SonarQube') {
-    bat """
-    sonar-scanner ^
-        -Dsonar.projectKey=moodify ^
-        -Dsonar.sources=. ^
-        -Dsonar.host.url=http://localhost:9000 ^
-        -Dsonar.login=%SONAR_TOKEN%
-    """
+stage('SonarQube Analysis') {
+    withSonarQubeEnv('SonarQube') {
+        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+            bat """
+            sonar-scanner ^
+                -Dsonar.projectKey=moodify ^
+                -Dsonar.sources=. ^
+                -Dsonar.host.url=http://localhost:9000 ^
+                -Dsonar.login=%SONAR_TOKEN%
+            """
+        }
+    }
 }
 
-                }
-            }
-        }
 
         stage('Docker Build') {
             steps {
