@@ -7,12 +7,6 @@ pipeline {
 
     stages {
 
-        stage('Clone Code') {
-            steps {
-                git 'https://github.com/svara1410/moodify.git'
-            }
-        }
-
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
@@ -27,21 +21,21 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker build -t %IMAGE_NAME% .'
             }
         }
 
         stage('Trivy Scan') {
             steps {
-                sh 'trivy image $IMAGE_NAME || true'
+                sh 'trivy image %IMAGE_NAME% || exit 0'
             }
         }
 
         stage('Run Container') {
             steps {
                 sh '''
-                docker rm -f moodify || true
-                docker run -d -p 3000:3000 --name moodify $IMAGE_NAME
+                docker rm -f moodify || exit 0
+                docker run -d -p 3000:3000 --name moodify %IMAGE_NAME%
                 '''
             }
         }
