@@ -1,40 +1,44 @@
 pipeline {
-  agent any
+    agent any
 
-  stages {
+    stages {
 
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-
-    stage('Install Dependencies') {
-      steps {
-        bat 'npm install'
-      }
-    }
-
-    stage('SonarQube Analysis') {
-      environment {
-        SONAR_TOKEN = credentials('sqa_a7e75fe218ad898df8006b6796d443050f7c4809')
-      }
-      steps {
-        withSonarQubeEnv('Moodify') {
-          bat """
-          npx sonar-scanner ^
-            -Dsonar.projectKey=moodify ^
-            -Dsonar.sources=. ^
-            -Dsonar.login=%SONAR_TOKEN%
-          """
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
+            }
         }
-      }
-    }
 
-    stage('Quality Gate') {
-      steps {
-        waitForQualityGate abortPipeline: true
-      }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t moodify:latest .'
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                sh '''
+                docker stop moodify || true
+                docker rm moodify || true
+                docker run -d --name moodify -p 3000:3000 moodify:latest
+                '''
+            }
+        }
     }
-  }
 }
