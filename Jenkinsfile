@@ -1,44 +1,50 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'node'
+    }
+
     environment {
-        IMAGE_NAME = "moodify-app"
+        SONAR_HOME = tool 'SonarQubeScanner'
     }
 
     stages {
 
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/svara1410/moodify.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    bat '''
-                    docker run --rm ^
-                      -e SONAR_HOST_URL=%SONAR_HOST_URL% ^
-                      -e SONAR_LOGIN=%SONAR_AUTH_TOKEN% ^
-                      -v "%CD%:/usr/src" ^
-                      sonarsource/sonar-scanner-cli
+                    sh '''
+                    sonar-scanner \
+                    -Dsonar.projectKey=moodify \
+                    -Dsonar.projectName=moodify \
+                    -Dsonar.sources=.
                     '''
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Docker Build') {
             steps {
-                bat 'docker build -t %IMAGE_NAME% .'
+                sh 'docker build -t moodify-app .'
             }
         }
 
-        stage('Trivy Scan') {
+        stage('Docker Run') {
             steps {
-                bat 'trivy image %IMAGE_NAME% || exit 0'
-            }
-        }
-
-        stage('Run Container') {
-            steps {
-                bat '''
-                docker rm -f moodify 2>nul
-                docker run -d -p 3000:3000 --name moodify %IMAGE_NAME%
-                '''
+                sh 'docker run -d -p 3000:3000 moodify-app'
             }
         }
     }
