@@ -2,8 +2,10 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'node'
-    }
+    nodejs 'node'
+    sonarQubeScanner 'SonarQubeScanner'
+}
+
 
     environment {
         SONAR_HOME = tool 'SonarQubeScanner'
