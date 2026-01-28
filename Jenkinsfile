@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-    SONAR_TOKEN = credentials('SONAR_AUTH_TOKEN') // this ID must exist
+    SONAR_TOKEN = credentials('SONAR_TOKEN') // this ID must exist
 }
 
 
