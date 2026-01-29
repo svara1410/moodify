@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN') // Your SonarQube token
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
         APP_PORT = "3000"
-        CONTAINER_NAME = "moodify-container"
+        CONTAINER_NAME = "monitoring"
     }
 
     stages {
@@ -29,7 +29,7 @@ pipeline {
                         -Dsonar.projectKey=moodify ^
                         -Dsonar.sources=. ^
                         -Dsonar.host.url=http://localhost:9000 ^
-                        -Dsonar.login=%SONAR_TOKEN%
+                        -Dsonar.token=%SONAR_TOKEN%
                     """
                 }
             }
@@ -46,8 +46,11 @@ pipeline {
             steps {
                 echo 'Running Docker container...'
                 bat """
+                    REM Stop and remove old container if exists
                     docker stop %CONTAINER_NAME% || exit 0
                     docker rm %CONTAINER_NAME% || exit 0
+
+                    REM Run container in detached mode
                     docker run -d -p %APP_PORT%:%APP_PORT% --name %CONTAINER_NAME% moodify-app
                 """
             }
