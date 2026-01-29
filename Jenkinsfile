@@ -2,15 +2,16 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN')
         APP_PORT = "3000"
         CONTAINER_NAME = "monitoring"
+        SONARQUBE_SCANNER = "SonarQube"
     }
 
     stages {
         stage('Checkout SCM') {
             steps {
-                git url: 'https://github.com/svara1410/moodify.git', branch: 'main'
+                echo 'Checking out source code...'
+                checkout scm
             }
         }
 
@@ -23,13 +24,13 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv("${SONARQUBE_SCANNER}") {
                     bat """
                         sonar-scanner ^
-                        -Dsonar.projectKey=moodify ^
-                        -Dsonar.sources=. ^
-                        -Dsonar.host.url=http://localhost:9000 ^
-                        -Dsonar.token=%SONAR_TOKEN%
+                            -Dsonar.projectKey=moodify ^
+                            -Dsonar.sources=. ^
+                            -Dsonar.host.url=http://localhost:9000 ^
+                            -Dsonar.login=%SONAR_TOKEN%
                     """
                 }
             }
@@ -38,7 +39,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 echo 'Building Docker image...'
-                bat "docker build -t moodify-app ."
+                bat 'docker build -t moodify-app .'
             }
         }
 
@@ -46,11 +47,8 @@ pipeline {
             steps {
                 echo 'Running Docker container...'
                 bat """
-                    REM Stop and remove old container if exists
-                    docker stop %CONTAINER_NAME% || exit 0
-                    docker rm %CONTAINER_NAME% || exit 0
-
-                    REM Run container in detached mode
+                    docker stop %CONTAINER_NAME% 2> NUL
+                    docker rm %CONTAINER_NAME% 2> NUL
                     docker run -d -p %APP_PORT%:%APP_PORT% --name %CONTAINER_NAME% moodify-app
                 """
             }
@@ -59,27 +57,27 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    def maxRetries = 6
+                    def maxRetries = 12
                     def retryCount = 0
                     def appUp = false
 
-                    while (retryCount < maxRetries && !appUp) {
-                        try {
-                            echo "Checking application health (attempt ${retryCount + 1})..."
-                            bat "curl -s http://localhost:%APP_PORT% > NUL"
+                    while(retryCount < maxRetries && !appUp) {
+                        echo "Checking application health (attempt ${retryCount+1})..."
+                        def status = bat(returnStatus: true, script: "curl -s http://localhost:%APP_PORT% 1>NUL")
+                        if (status == 0) {
+                            echo '✅ Application is up and running!'
                             appUp = true
-                            echo "✅ Application is up!"
-                        } catch (Exception e) {
+                        } else {
+                            echo 'App not ready yet, waiting 5 seconds...'
+                            sleep 5
                             retryCount++
-                            if (retryCount < maxRetries) {
-                                echo "App not ready yet, waiting 5 seconds..."
-                                sleep 5
-                            } else {
-                                echo "❌ Application did not start in time. Showing container logs..."
-                                bat "docker logs %CONTAINER_NAME%"
-                                error "Application health check failed!"
-                            }
                         }
+                    }
+
+                    if (!appUp) {
+                        echo '❌ Application did not start in time. Showing container logs...'
+                        bat "docker logs %CONTAINER_NAME%"
+                        error('Application failed to start.')
                     }
                 }
             }
@@ -90,8 +88,8 @@ pipeline {
         always {
             echo 'Cleaning up...'
             bat """
-                docker stop %CONTAINER_NAME% || exit 0
-                docker rm %CONTAINER_NAME% || exit 0
+                docker stop %CONTAINER_NAME% 2> NUL
+                docker rm %CONTAINER_NAME% 2> NUL
             """
         }
     }
