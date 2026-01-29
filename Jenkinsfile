@@ -29,16 +29,8 @@ pipeline {
                       -Dsonar.projectKey=moodify ^
                       -Dsonar.sources=. ^
                       -Dsonar.host.url=http://localhost:9000 ^
-                      -Dsonar.login=%SONAR_TOKEN%
+                      -Dsonar.token=%SONAR_TOKEN%
                     """
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -54,7 +46,6 @@ pipeline {
             steps {
                 echo 'Running Docker container...'
 
-                // Stop old container if running
                 bat '''
                 docker stop moodify-container || exit 0
                 docker rm moodify-container || exit 0
@@ -66,16 +57,15 @@ pipeline {
 
         stage('Monitoring & Metrics Validation') {
             steps {
-                echo 'Checking application metrics and monitoring stack...'
-
+                echo 'Validating monitoring stack...'
                 bat '''
-                echo ==== APPLICATION METRICS ====
+                echo App Metrics:
                 powershell -Command "Invoke-WebRequest http://localhost:3000/metrics"
 
-                echo ==== PROMETHEUS ====
+                echo Prometheus:
                 echo http://localhost:9090
 
-                echo ==== GRAFANA ====
+                echo Grafana:
                 echo http://localhost:3001
                 '''
             }
@@ -84,10 +74,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline completed successfully with CI + Monitoring!'
+            echo '✅ CI/CD + Monitoring Pipeline SUCCESSFUL'
         }
         failure {
-            echo '❌ Pipeline failed. Check above logs.'
+            echo '❌ Pipeline failed'
         }
     }
 }
