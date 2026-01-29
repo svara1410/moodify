@@ -50,9 +50,13 @@ stage('SonarQube Analysis') {
         }
 
         stage('Docker Run') {
-            steps {
-                bat 'docker run -d -p 3000:3000 moodify-app'
-            }
-        }
+    steps {
+        bat '''
+        docker stop moodify-container || exit 0
+        docker rm moodify-container || exit 0
+        docker run -d --name moodify-container -p 3000:3000 moodify-app
+        '''
+    }
+}
     }
 }
