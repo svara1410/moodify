@@ -45,54 +45,53 @@ pipeline {
         stage('Docker Run') {
             steps {
                 echo 'Running Docker container...'
-
                 bat '''
                 docker stop moodify-container || exit 0
                 docker rm moodify-container || exit 0
                 '''
-
                 bat 'docker run -d -p 3000:3000 --name moodify-container moodify-app'
             }
         }
 
         stage('Monitoring & Metrics Validation') {
-    steps {
-        echo 'Validating monitoring stack...'
+            steps {
+                echo 'Validating monitoring stack...'
 
-        // Wait for app to start (max 30 seconds)
-        script {
-            def maxRetries = 6
-            def retryCount = 0
-            def appUp = false
+                // Retry loop for Node app
+                script {
+                    def maxRetries = 6
+                    def retryCount = 0
+                    def appUp = false
 
-            while (retryCount < maxRetries && !appUp) {
-                try {
-                    echo "Checking application health (attempt ${retryCount + 1})..."
-                    bat 'curl http://localhost:3000 -f'  // -f fails on HTTP errors
-                    appUp = true
-                    echo "✅ Application is up!"
-                } catch (Exception e) {
-                    retryCount++
-                    if (retryCount < maxRetries) {
-                        echo "App not ready yet, waiting 5 seconds..."
-                        bat 'timeout /t 5 >nul'
-                    } else {
-                        error "❌ Application did not start in time!"
-                    }
-                }
+                    while (retryCount < maxRetries && !appUp) {
+                        try {
+                            echo "Checking application health (attempt ${retryCount + 1})..."
+                            bat 'curl http://localhost:3000 -f'
+                            appUp = true
+                            echo "✅ Application is up!"
+                        } catch (Exception e) {
+                            retryCount++
+                            if (retryCount < maxRetries) {
+                                echo "App not ready yet, waiting 5 seconds..."
+                                bat 'timeout /t 5 >nul'
+                            } else {
+                                error "❌ Application did not start in time!"
+                            }
+                        }
+                    } // closes while
+                } // closes script
+
+                // Check Prometheus
+                echo 'Checking Prometheus...'
+                bat 'curl http://localhost:9090/-/healthy -f || exit 1'
+
+                // Check Grafana
+                echo 'Checking Grafana...'
+                bat 'curl http://localhost:3001/api/health -f || exit 1'
             }
         }
 
-        // Check Prometheus
-        echo 'Checking Prometheus...'
-        bat 'curl http://localhost:9090/-/healthy -f || exit 1'
-
-        // Check Grafana
-        echo 'Checking Grafana...'
-        bat 'curl http://localhost:3001/api/health -f || exit 1'
-    }
-}
- // <-- This closes the stages block
+    } // closes stages
 
     post {
         success {
