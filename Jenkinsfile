@@ -15,7 +15,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                tool name: 'NodeJS', type: 'NodeJSInstallation' // adjust if your NodeJS tool name is different
+                tool name: 'node', type: 'NodeJSInstallation' // adjust if your NodeJS tool name is different
                 bat 'npm install'
             }
         }
