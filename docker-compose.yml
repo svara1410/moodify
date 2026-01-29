@@ -32,3 +32,12 @@ services:
 
 volumes:
   grafana-storage:
+
+github-exporter:
+  image: prometheuscommunity/github-exporter:latest
+  container_name: github-exporter
+  environment:
+    GITHUB_REPO: "svara1410/moodify"
+  ports:
+    - "8080:8080"
+
