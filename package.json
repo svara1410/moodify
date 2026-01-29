@@ -17,7 +17,7 @@
   "scripts": {
     "start": "react-scripts start --host 0.0.0.0 --port 3000",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "react-scripts test --watchAll=false --passWithNoTests",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
