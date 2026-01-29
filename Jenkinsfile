@@ -56,21 +56,19 @@ pipeline {
         }
 
         stage('Monitoring & Metrics Validation') {
-            steps {
-                echo 'Validating monitoring stack...'
-                bat '''
-                echo App Metrics:
-                powershell -Command "Invoke-WebRequest http://localhost:3000/metrics"
+    steps {
+        echo 'Validating monitoring stack...'
 
-                echo Prometheus:
-                echo http://localhost:9090
+        echo 'Checking application health'
+        bat 'curl http://localhost:3000 || exit 1'
 
-                echo Grafana:
-                echo http://localhost:3001
-                '''
-            }
-        }
+        echo 'Checking Prometheus'
+        bat 'curl http://localhost:9090/-/healthy || exit 1'
+
+        echo 'Checking Grafana'
+        bat 'curl http://localhost:3001/api/health || exit 1'
     }
+}
 
     post {
         success {
