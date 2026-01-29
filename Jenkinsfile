@@ -2,18 +2,15 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE = 'SonarQube' // Your SonarQube server name in Jenkins
-        SONAR_TOKEN = credentials('SONAR_TOKEN') // Jenkins credential ID
-        IMAGE_NAME = "moodify-app"
+        SONAR_TOKEN = credentials('SONAR_TOKEN') // Your SonarQube token
+        APP_PORT = "3000"
         CONTAINER_NAME = "moodify-container"
-        APP_PORT = 3000
     }
 
     stages {
-
         stage('Checkout SCM') {
             steps {
-                checkout scm
+                git url: 'https://github.com/svara1410/moodify.git', branch: 'main'
             }
         }
 
@@ -27,11 +24,13 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    bat """sonar-scanner ^
+                    bat """
+                        sonar-scanner ^
                         -Dsonar.projectKey=moodify ^
                         -Dsonar.sources=. ^
                         -Dsonar.host.url=http://localhost:9000 ^
-                        -Dsonar.login=%SONAR_TOKEN%"""
+                        -Dsonar.login=%SONAR_TOKEN%
+                    """
                 }
             }
         }
@@ -39,7 +38,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 echo 'Building Docker image...'
-                bat "docker build -t %IMAGE_NAME% ."
+                bat "docker build -t moodify-app ."
             }
         }
 
@@ -49,14 +48,13 @@ pipeline {
                 bat """
                     docker stop %CONTAINER_NAME% || exit 0
                     docker rm %CONTAINER_NAME% || exit 0
-                    docker run -d -p %APP_PORT%:%APP_PORT% --name %CONTAINER_NAME% %IMAGE_NAME%
+                    docker run -d -p %APP_PORT%:%APP_PORT% --name %CONTAINER_NAME% moodify-app
                 """
             }
         }
 
-        stage('Monitoring & Metrics Validation') {
+        stage('Health Check') {
             steps {
-                echo 'Validating application health...'
                 script {
                     def maxRetries = 6
                     def retryCount = 0
@@ -65,14 +63,14 @@ pipeline {
                     while (retryCount < maxRetries && !appUp) {
                         try {
                             echo "Checking application health (attempt ${retryCount + 1})..."
-                            bat "curl http://localhost:%APP_PORT% -f"
+                            bat "curl -s http://localhost:%APP_PORT% > NUL"
                             appUp = true
                             echo "✅ Application is up!"
                         } catch (Exception e) {
                             retryCount++
                             if (retryCount < maxRetries) {
                                 echo "App not ready yet, waiting 5 seconds..."
-                                bat "timeout /t 5 /nobreak"
+                                sleep 5
                             } else {
                                 echo "❌ Application did not start in time. Showing container logs..."
                                 bat "docker logs %CONTAINER_NAME%"
@@ -86,15 +84,8 @@ pipeline {
     }
 
     post {
-        success {
-            echo "🎉 Pipeline completed successfully!"
-        }
-        failure {
-            echo "❌ Pipeline failed. Check logs above."
-            bat "docker logs %CONTAINER_NAME%"
-        }
         always {
-            echo "Cleaning up..."
+            echo 'Cleaning up...'
             bat """
                 docker stop %CONTAINER_NAME% || exit 0
                 docker rm %CONTAINER_NAME% || exit 0
