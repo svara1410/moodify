@@ -1,83 +1,82 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'node' // Make sure NodeJS is installed in Jenkins Tools
+    }
+
     environment {
-        APP_PORT = "3000"
-        CONTAINER_NAME = "monitoring"
-        SONARQUBE_SCANNER = "SonarQube"
+        SONAR_TOKEN = credentials('SONAR_TOKEN') // This ID must exist in Jenkins
     }
 
     stages {
-        stage('Checkout SCM') {
+
+        stage('Checkout') {
             steps {
-                echo 'Checking out source code...'
-                checkout scm
+                git branch: 'main', url: 'https://github.com/svara1410/moodify.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                echo 'Installing npm dependencies...'
                 bat 'npm install'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${SONARQUBE_SCANNER}") {
-                    bat """
+                withSonarQubeEnv('SonarQube') {
+                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                        bat """
                         sonar-scanner ^
                             -Dsonar.projectKey=moodify ^
                             -Dsonar.sources=. ^
                             -Dsonar.host.url=http://localhost:9000 ^
                             -Dsonar.login=%SONAR_TOKEN%
-                    """
+                        """
+                    }
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                echo 'Building Docker image...'
                 bat 'docker build -t moodify-app .'
             }
         }
 
-        stage('Docker Run') {
+        stage('Monitoring') {
             steps {
-                echo 'Running Docker container...'
+                // Run container
                 bat """
-                    docker stop %CONTAINER_NAME% 2> NUL
-                    docker rm %CONTAINER_NAME% 2> NUL
-                    docker run -d -p %APP_PORT%:%APP_PORT% --name %CONTAINER_NAME% moodify-app
+                docker stop monitoring 2>NUL || echo No container to stop
+                docker rm monitoring 2>NUL || echo No container to remove
+                docker run -d --name monitoring -p 3000:3000 moodify-app
                 """
-            }
-        }
 
-        stage('Health Check') {
-            steps {
+                // Health check
                 script {
-                    def maxRetries = 12
-                    def retryCount = 0
-                    def appUp = false
+                    def maxRetries = 6
+                    def waitTime = 5
+                    def healthy = false
 
-                    while(retryCount < maxRetries && !appUp) {
-                        echo "Checking application health (attempt ${retryCount+1})..."
-                        def status = bat(returnStatus: true, script: "curl -s http://localhost:%APP_PORT% 1>NUL")
-                        if (status == 0) {
-                            echo '✅ Application is up and running!'
-                            appUp = true
+                    for (int i = 1; i <= maxRetries; i++) {
+                        echo "Checking application health (attempt ${i})..."
+                        def result = bat(script: "curl -s http://localhost:3000 > nul", returnStatus: true)
+                        if (result == 0) {
+                            healthy = true
+                            echo "✅ Application is up!"
+                            break
                         } else {
-                            echo 'App not ready yet, waiting 5 seconds...'
-                            sleep 5
-                            retryCount++
+                            echo "App not ready yet, waiting ${waitTime} seconds..."
+                            sleep(waitTime)
                         }
                     }
 
-                    if (!appUp) {
-                        echo '❌ Application did not start in time. Showing container logs...'
-                        bat "docker logs %CONTAINER_NAME%"
-                        error('Application failed to start.')
+                    if (!healthy) {
+                        echo "❌ Application did not start in time. Showing container logs..."
+                        bat 'docker logs monitoring'
+                        error("Application failed health check")
                     }
                 }
             }
@@ -88,8 +87,8 @@ pipeline {
         always {
             echo 'Cleaning up...'
             bat """
-                docker stop %CONTAINER_NAME% 2> NUL
-                docker rm %CONTAINER_NAME% 2> NUL
+            docker stop monitoring 2>NUL || echo No container to stop
+            docker rm monitoring 2>NUL || echo No container to remove
             """
         }
     }
