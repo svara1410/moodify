@@ -56,21 +56,43 @@ pipeline {
         }
 
         stage('Monitoring & Metrics Validation') {
-            steps {
-                echo 'Validating monitoring stack...'
+    steps {
+        echo 'Validating monitoring stack...'
 
-                echo 'Checking application health'
-                bat 'curl http://localhost:3000 || exit 1'
+        // Wait for app to start (max 30 seconds)
+        script {
+            def maxRetries = 6
+            def retryCount = 0
+            def appUp = false
 
-                echo 'Checking Prometheus'
-                bat 'curl http://localhost:9090/-/healthy || exit 1'
-
-                echo 'Checking Grafana'
-                bat 'curl http://localhost:3001/api/health || exit 1'
+            while (retryCount < maxRetries && !appUp) {
+                try {
+                    echo "Checking application health (attempt ${retryCount + 1})..."
+                    bat 'curl http://localhost:3000 -f'  // -f fails on HTTP errors
+                    appUp = true
+                    echo "✅ Application is up!"
+                } catch (Exception e) {
+                    retryCount++
+                    if (retryCount < maxRetries) {
+                        echo "App not ready yet, waiting 5 seconds..."
+                        bat 'timeout /t 5 >nul'
+                    } else {
+                        error "❌ Application did not start in time!"
+                    }
+                }
             }
         }
 
-    } // <-- This closes the stages block
+        // Check Prometheus
+        echo 'Checking Prometheus...'
+        bat 'curl http://localhost:9090/-/healthy -f || exit 1'
+
+        // Check Grafana
+        echo 'Checking Grafana...'
+        bat 'curl http://localhost:3001/api/health -f || exit 1'
+    }
+}
+ // <-- This closes the stages block
 
     post {
         success {
