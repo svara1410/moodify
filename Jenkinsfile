@@ -64,8 +64,8 @@ pipeline {
             steps {
                 echo 'Recording build metrics to Prometheus'
                 // Increment a Jenkins counter metric exposed to Prometheus
-                // prometheus {
-                //     incrementJobCounter(name: 'moodify_build_total')
+                prometheus {
+                    incrementJobCounter(name: 'moodify_build_total')
                 }
             }
         }
