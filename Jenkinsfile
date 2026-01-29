@@ -56,19 +56,21 @@ pipeline {
         }
 
         stage('Monitoring & Metrics Validation') {
-    steps {
-        echo 'Validating monitoring stack...'
+            steps {
+                echo 'Validating monitoring stack...'
 
-        echo 'Checking application health'
-        bat 'curl http://localhost:3000 || exit 1'
+                echo 'Checking application health'
+                bat 'curl http://localhost:3000 || exit 1'
 
-        echo 'Checking Prometheus'
-        bat 'curl http://localhost:9090/-/healthy || exit 1'
+                echo 'Checking Prometheus'
+                bat 'curl http://localhost:9090/-/healthy || exit 1'
 
-        echo 'Checking Grafana'
-        bat 'curl http://localhost:3001/api/health || exit 1'
-    }
-}
+                echo 'Checking Grafana'
+                bat 'curl http://localhost:3001/api/health || exit 1'
+            }
+        }
+
+    } // <-- This closes the stages block
 
     post {
         success {
