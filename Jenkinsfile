@@ -1,64 +1,69 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'node'
+    }
+
     environment {
-        SONAR_TOKEN = credentials('sonar-token') // your SonarQube token ID
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
     }
 
     stages {
 
-        stage('Checkout SCM') {
+        stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/svara1410/moodify.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                tool name: 'node', type: 'NodeJSInstallation' // adjust if your NodeJS tool name is different
                 bat 'npm install'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') { // name of your SonarQube server in Jenkins
-                    bat 'sonar-scanner'
+                withSonarQubeEnv('SonarQube') {
+                    bat """
+                    sonar-scanner ^
+                      -Dsonar.projectKey=moodify ^
+                      -Dsonar.sources=. ^
+                      -Dsonar.host.url=http://localhost:9000 ^
+                      -Dsonar.login=%SONAR_TOKEN%
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                script {
-                    // Build Docker image
-                    bat 'docker build -t moodify-app .'
-                }
+                bat 'docker build -t moodify-app .'
             }
         }
 
         stage('Docker Run') {
             steps {
-                script {
-                    // Stop container if exists
-                    bat 'docker stop moodify-container || exit 0'
-
-                    // Run container
-                    bat 'docker run -d --name moodify-container -p 3000:3000 moodify-app'
-                }
-            }
-        }
-
-        stage('Record Jenkins Metrics') {
-            steps {
-                echo 'Recording build metrics to Prometheus skipped (plugin not installed).'
+                bat 'docker run -d -p 3000:3000 moodify-app'
             }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline finished!'
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed!'
         }
     }
 }
