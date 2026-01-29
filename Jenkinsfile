@@ -142,22 +142,22 @@ pipeline {
 
     post {
         always {
-            node {
-                wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
-                    echo 'Cleaning up Docker containers...'
-                    bat """
-                    docker stop monitoring 2>NUL || echo No container to stop
-                    docker rm monitoring 2>NUL || echo No container to remove
-                    """
-                }
+            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+                echo 'Cleaning up Docker containers...'
+                bat """
+                docker stop monitoring 2>NUL || echo No container to stop
+                docker rm monitoring 2>NUL || echo No container to remove
+                """
             }
         }
+
         success {
             wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
                 echo 'Pipeline Succeeded! 🎉'
                 // slackSend(channel: '#moodify', message: 'Pipeline Successful ✅') // optional
             }
         }
+
         failure {
             wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
                 echo 'Pipeline Failed ❌'
