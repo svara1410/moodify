@@ -5,3 +5,15 @@ scrape_configs:
   - job_name: 'nodejs-app'
     static_configs:
       - targets: ['node-app:5000']  # This must match your container name and exposed port
+
+groups:
+- name: node-alerts
+  rules:
+  - alert: HighMemoryUsage
+    expr: process_resident_memory_bytes > 500000000
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Node.js app memory usage high"
+
