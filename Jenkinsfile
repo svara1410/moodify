@@ -23,6 +23,16 @@ pipeline {
             }
         }
 
+        // ------------------- NEW STAGE -------------------
+        stage('Frontend Tests') {
+            steps {
+                echo 'Running single Navbar test...'
+                // Run only the frontend test we made, with coverage
+                bat 'npm test -- --coverage --watchAll=false'
+            }
+        }
+        // -------------------------------------------------
+
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
