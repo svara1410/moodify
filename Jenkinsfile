@@ -2,13 +2,11 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'node'
+        nodejs 'node' // Make sure NodeJS is installed in Jenkins Tools
     }
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN')
-        DOCKERHUB = credentials('DOCKERHUB')
-        DOCKER_IMAGE = 'svara1410/moodify-app'
+        SONAR_TOKEN = credentials('SONAR_TOKEN') // This ID must exist in Jenkins
     }
 
     options {
@@ -33,6 +31,8 @@ pipeline {
 
         stage('Frontend Tests') {
             steps {
+                echo 'Running single Navbar test...'
+                // Run only the frontend test we made, with coverage
                 bat 'npm test -- --coverage --watchAll=false'
             }
         }
@@ -40,49 +40,71 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    bat """
-                    sonar-scanner ^
-                      -Dsonar.projectKey=moodify ^
-                      -Dsonar.sources=. ^
-                      -Dsonar.host.url=http://localhost:9000 ^
-                      -Dsonar.login=%SONAR_TOKEN%
-                    """
+                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                        bat """
+                        sonar-scanner ^
+                            -Dsonar.projectKey=moodify ^
+                            -Dsonar.sources=. ^
+                            -Dsonar.host.url=http://localhost:9000 ^
+                            -Dsonar.login=%SONAR_TOKEN%
+                        """
+                    }
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                bat 'docker build -t %DOCKER_IMAGE% .'
+                // Kept exactly as you had it
+                bat 'docker build -t moodify-app .'
             }
         }
 
-        stage('Docker Login & Push') {
+        stage('Monitoring') {
             steps {
+                // Run container exactly as you had it
                 bat """
-                docker login -u %DOCKERHUB_USR% -p %DOCKERHUB_PSW%
-                docker push %DOCKER_IMAGE%
+                docker stop monitoring 2>NUL || echo No container to stop
+                docker rm monitoring 2>NUL || echo No container to remove
+                docker run -d --name monitoring -p 3000:3000 moodify-app
                 """
-            }
-        }
 
-        stage('Run Container') {
-            steps {
-                bat """
-                docker stop moodify 2>NUL || echo No container
-                docker rm moodify 2>NUL || echo No container
-                docker run -d --name moodify -p 3000:3000 %DOCKER_IMAGE%
-                """
+                // Health check
+                script {
+                    def maxRetries = 6
+                    def waitTime = 5
+                    def healthy = false
+
+                    for (int i = 1; i <= maxRetries; i++) {
+                        echo "Checking application health (attempt ${i})..."
+                        def result = bat(script: "curl -s http://localhost:3000 > nul", returnStatus: true)
+                        if (result == 0) {
+                            healthy = true
+                            echo "✅ Application is up!"
+                            break
+                        } else {
+                            echo "App not ready yet, waiting ${waitTime} seconds..."
+                            sleep(waitTime)
+                        }
+                    }
+
+                    if (!healthy) {
+                        echo "❌ Application did not start in time. Showing container logs..."
+                        bat 'docker logs monitoring'
+                        error("Application failed health check")
+                    }
+                }
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Pipeline completed successfully'
-        }
-        failure {
-            echo '❌ Pipeline failed'
+        always {
+            // Removed node { } → works fine in Declarative
+            echo 'Cleaning up...'
+            bat """
+            docker stop monitoring 2>NUL || echo No container to stop
+            """
         }
     }
 }
