@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'node' // Make sure NodeJS is installed in Jenkins Tools
+        nodejs 'node'
     }
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN') // This ID must exist in Jenkins
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
     }
 
     options {
@@ -31,8 +31,7 @@ pipeline {
 
         stage('Frontend Tests') {
             steps {
-                echo 'Running single Navbar test...'
-                // Run only the frontend test we made, with coverage
+                echo 'Running frontend tests...'
                 bat 'npm test -- --coverage --watchAll=false'
             }
         }
@@ -40,58 +39,72 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                    withCredentials([
+                        string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
+                    ]) {
                         bat """
                         sonar-scanner ^
-                            -Dsonar.projectKey=moodify ^
-                            -Dsonar.sources=. ^
-                            -Dsonar.host.url=http://localhost:9000 ^
-                            -Dsonar.login=%SONAR_TOKEN%
+                          -Dsonar.projectKey=moodify ^
+                          -Dsonar.sources=. ^
+                          -Dsonar.host.url=http://localhost:9000 ^
+                          -Dsonar.login=%SONAR_TOKEN%
                         """
                     }
                 }
             }
         }
 
+        /* ========= DOCKER (MINIMAL CHANGES) ========= */
+
         stage('Docker Build') {
             steps {
-                // Kept exactly as you had it
-                bat 'docker build -t moodify-app .'
+                bat 'docker build -t svara1410/moodify-app:latest .'
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'DOCKERHUB',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat """
+                    docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                    docker push svara1410/moodify-app:latest
+                    """
+                }
             }
         }
 
         stage('Monitoring') {
             steps {
-                // Run container exactly as you had it
                 bat """
                 docker stop monitoring 2>NUL || echo No container to stop
                 docker rm monitoring 2>NUL || echo No container to remove
-                docker run -d --name monitoring -p 3000:3000 moodify-app
+                docker run -d --name monitoring -p 3000:3000 svara1410/moodify-app:latest
                 """
 
-                // Health check
                 script {
-                    def maxRetries = 6
-                    def waitTime = 5
                     def healthy = false
 
-                    for (int i = 1; i <= maxRetries; i++) {
-                        echo "Checking application health (attempt ${i})..."
-                        def result = bat(script: "curl -s http://localhost:3000 > nul", returnStatus: true)
-                        if (result == 0) {
+                    for (int i = 1; i <= 6; i++) {
+                        echo "Health check attempt ${i}..."
+                        def status = bat(
+                            script: "curl -s http://localhost:3000 > nul",
+                            returnStatus: true
+                        )
+                        if (status == 0) {
+                            echo "✅ App is UP"
                             healthy = true
-                            echo "✅ Application is up!"
                             break
-                        } else {
-                            echo "App not ready yet, waiting ${waitTime} seconds..."
-                            sleep(waitTime)
                         }
+                        sleep 5
                     }
 
                     if (!healthy) {
-                        echo "❌ Application did not start in time. Showing container logs..."
                         bat 'docker logs monitoring'
-                        error("Application failed health check")
+                        error "❌ Health check failed"
                     }
                 }
             }
@@ -100,12 +113,7 @@ pipeline {
 
     post {
         always {
-            // Removed node { } → works fine in Declarative
-            echo 'Cleaning up...'
-            bat """
-            docker stop monitoring 2>NUL || echo No container to stop
-            docker rm monitoring 2>NUL || echo No container to remove
-            """
+            echo 'Build finished – container preserved'
         }
     }
 }
