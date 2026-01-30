@@ -7,6 +7,8 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
+        DOCKER_CREDS = credentials('dockerhub-creds')   // DockerHub credentials ID
+        IMAGE_NAME = "svara1410/moodify-app"
     }
 
     options {
@@ -31,7 +33,6 @@ pipeline {
 
         stage('Frontend Tests') {
             steps {
-                echo 'Running frontend tests...'
                 bat 'npm test -- --coverage --watchAll=false'
             }
         }
@@ -39,81 +40,60 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    withCredentials([
-                        string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
-                    ]) {
-                        bat """
-                        sonar-scanner ^
-                          -Dsonar.projectKey=moodify ^
-                          -Dsonar.sources=. ^
-                          -Dsonar.host.url=http://localhost:9000 ^
-                          -Dsonar.login=%SONAR_TOKEN%
-                        """
-                    }
-                }
-            }
-        }
-
-        /* ========= DOCKER (MINIMAL CHANGES) ========= */
-
-        stage('Docker Build') {
-            steps {
-                bat 'docker build -t svara1410/moodify-app:latest .'
-            }
-        }
-
-        stage('Docker Push') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'DOCKERHUB',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
                     bat """
-                    docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-                    docker push svara1410/moodify-app:latest
+                    sonar-scanner ^
+                      -Dsonar.projectKey=moodify ^
+                      -Dsonar.sources=. ^
+                      -Dsonar.host.url=http://localhost:9000 ^
+                      -Dsonar.login=%SONAR_TOKEN%
                     """
                 }
             }
         }
 
-        stage('Monitoring') {
+        stage('Docker Build') {
+            steps {
+                bat 'docker build -t moodify-app .'
+            }
+        }
+
+        stage('Docker Tag') {
+            steps {
+                bat 'docker tag moodify-app %IMAGE_NAME%:latest'
+            }
+        }
+
+        stage('Docker Login') {
             steps {
                 bat """
-                docker stop monitoring 2>NUL || echo No container to stop
-                docker rm monitoring 2>NUL || echo No container to remove
-                docker run -d --name monitoring -p 3000:3000 svara1410/moodify-app:latest
+                echo %DOCKER_CREDS_PSW% | docker login -u %DOCKER_CREDS_USR% --password-stdin
                 """
+            }
+        }
 
-                script {
-                    def healthy = false
+        stage('Docker Push') {
+            steps {
+                bat 'docker push %IMAGE_NAME%:latest'
+            }
+        }
 
-                    for (int i = 1; i <= 6; i++) {
-                        echo "Health check attempt ${i}..."
-                        def status = bat(
-                            script: "curl -s http://localhost:3000 > nul",
-                            returnStatus: true
-                        )
-                        if (status == 0) {
-                            echo "✅ App is UP"
-                            healthy = true
-                            break
-                        }
-                        sleep 5
-                    }
-
-                    if (!healthy) {
-                        bat 'docker logs monitoring'
-                        error "❌ Health check failed"
-                    }
-                }
+        stage('Run Container') {
+            steps {
+                bat """
+                docker stop moodify || echo No container to stop
+                docker rm moodify || echo No container to remove
+                docker run -d -p 3000:3000 --name moodify %IMAGE_NAME%:latest
+                """
             }
         }
     }
 
     post {
-        always {
-            echo 'Build finished – container preserved'
+        success {
+            echo "✅ Pipeline completed successfully"
+        }
+        failure {
+            echo "❌ Pipeline failed"
         }
     }
 }
