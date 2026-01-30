@@ -7,8 +7,8 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
-        DOCKER_CREDS = credentials('dockerhub-creds')   // DockerHub credentials ID
-        IMAGE_NAME = "svara1410/moodify-app"
+        DOCKERHUB = credentials('DOCKERHUB')
+        DOCKER_IMAGE = 'svara1410/moodify-app'
     }
 
     options {
@@ -53,36 +53,25 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat 'docker build -t moodify-app .'
+                bat 'docker build -t %DOCKER_IMAGE% .'
             }
         }
 
-        stage('Docker Tag') {
-            steps {
-                bat 'docker tag moodify-app %IMAGE_NAME%:latest'
-            }
-        }
-
-        stage('Docker Login') {
+        stage('Docker Login & Push') {
             steps {
                 bat """
-                echo %DOCKER_CREDS_PSW% | docker login -u %DOCKER_CREDS_USR% --password-stdin
+                docker login -u %DOCKERHUB_USR% -p %DOCKERHUB_PSW%
+                docker push %DOCKER_IMAGE%
                 """
-            }
-        }
-
-        stage('Docker Push') {
-            steps {
-                bat 'docker push %IMAGE_NAME%:latest'
             }
         }
 
         stage('Run Container') {
             steps {
                 bat """
-                docker stop moodify || echo No container to stop
-                docker rm moodify || echo No container to remove
-                docker run -d -p 3000:3000 --name moodify %IMAGE_NAME%:latest
+                docker stop moodify 2>NUL || echo No container
+                docker rm moodify 2>NUL || echo No container
+                docker run -d --name moodify -p 3000:3000 %DOCKER_IMAGE%
                 """
             }
         }
@@ -90,10 +79,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline completed successfully"
+            echo '✅ Pipeline completed successfully'
         }
         failure {
-            echo "❌ Pipeline failed"
+            echo '❌ Pipeline failed'
         }
     }
 }
