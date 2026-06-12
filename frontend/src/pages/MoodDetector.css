@@ -1,0 +1,217 @@
+.mood-detector-page {
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 680px;
+  margin: 0 auto;
+  color: #fff;
+}
+
+/* Hero */
+.md-hero {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+.md-sparkles {
+  font-size: 2.5rem;
+  animation: float 3s ease-in-out infinite;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.md-hero h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+  background: linear-gradient(90deg, #1db954, #9b59b6, #e74c3c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.md-hero p {
+  color: #888;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Card */
+.md-card {
+  background: #181818;
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.md-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.md-input {
+  background: #2a2a2a;
+  border: 2px solid #333;
+  border-radius: 14px;
+  padding: 1rem;
+  color: #fff;
+  font-size: 1rem;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+
+.md-input:focus { border-color: #1db954; }
+.md-input::placeholder { color: #555; }
+
+.md-btn {
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #1db954, #17a44d);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.md-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(29,185,84,0.4);
+}
+
+.md-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Loading dots */
+.md-loading { display: flex; gap: 6px; justify-content: center; align-items: center; height: 20px; }
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: bounce 0.8s ease infinite;
+}
+.dot:nth-child(2) { animation-delay: 0.15s; }
+.dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bounce {
+  0%,80%,100% { transform: scale(0.7); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Example prompts */
+.md-prompts-label { color: #666; font-size: 0.8rem; margin: 0 0 0.6rem; }
+
+.md-prompt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.md-chip {
+  background: #2a2a2a;
+  border: 1px solid #333;
+  color: #b3b3b3;
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.md-chip:hover {
+  border-color: #1db954;
+  color: #fff;
+  background: #1e2e22;
+}
+
+/* Error */
+.md-error {
+  background: rgba(231,76,60,0.15);
+  border: 1px solid #e74c3c;
+  color: #ff6b6b;
+  padding: 0.8rem 1.2rem;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Result */
+.md-result {
+  background: linear-gradient(135deg, var(--cat-color, #1db954) 0%, #0d0d0d 60%);
+  border-radius: 20px;
+  padding: 2rem;
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.md-result-top {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.md-emoji {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+}
+
+.md-category {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  color: #fff;
+}
+
+.md-vibe {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.85rem;
+  margin: 0.2rem 0 0;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+.md-reason {
+  color: rgba(255,255,255,0.85);
+  font-size: 0.95rem;
+  font-style: italic;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.md-open-btn {
+  display: inline-block;
+  background: #fff;
+  color: #000;
+  padding: 0.75rem 1.8rem;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.md-open-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}

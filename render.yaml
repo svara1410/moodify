@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: moodify
+    env: node
+    region: singapore   # closest to India; change to frankfurt or oregon if you prefer
+    plan: free
+    buildCommand: |
+      cd backend && npm install
+      cd ../frontend && npm install && npm run build
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true   # Render auto-generates a secure random value
+      - key: CLIENT_URL
+        value: https://moodify.onrender.com  # update with your actual Render URL after first deploy
